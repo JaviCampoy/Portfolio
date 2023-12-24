@@ -4,8 +4,8 @@ black . --exclude virtual_environment
 echo ******   EXECUTING ISORT   ******
 isort . --skip-glob virtual_environment
 echo ******   EXECUTING PYLINT   ******
-pylint . --ignore=virtual_environment
-pylint backend
+pylint backend --ignore=virtual_environment
+pylint tests --ignore=virtual_environment  
 echo ******   EXECUTING MYPY   ******
 mypy . --exclude virtual_environment
 echo ******   EXECUTING PYTEST   ******
