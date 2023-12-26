@@ -3,7 +3,7 @@ import logging
 import random
 from datetime import datetime
 from io import StringIO
-from typing import Dict, Optional, Text
+from typing import Dict, Optional, Text, Union
 
 import ipdb
 import pandas as pd
@@ -17,7 +17,7 @@ logger.setLevel(logging.INFO)  # NOTSET=0 < DEBUG=10 < INFO=20 < WARN=30 < ERROR
 # Used for dual client <-> server communication/authentication. Avoids a "forbidden" response.
 
 
-def time_formatter(input_date: Text) -> datetime:
+def time_formatter(input_date: Text) -> Text:
     date_and_time = "%Y/%m/%d %H:%M:%S"
     date_only = "%Y/%m/%d"
 
@@ -65,9 +65,7 @@ class YStock:
             try:
                 self.start_date = datetime.strptime(time_formatter(start_date), "%Y/%m/%d %H:%M:%S")
             except ValueError:
-                self.start_date = datetime.strptime(
-                    time_formatter(start_date) + " 00:00:00", "%Y/%m/%d %H:%M:%S"
-                )
+                self.start_date = datetime.strptime(time_formatter(start_date) + " 00:00:00", "%Y/%m/%d %H:%M:%S")
         else:
             None
 
@@ -75,41 +73,53 @@ class YStock:
             try:
                 self.end_date = datetime.strptime(time_formatter(end_date), "%Y/%m/%d %H:%M:%S")
             except ValueError:
-                self.end_date = datetime.strptime(
-                    time_formatter(end_date) + " 23:59:59", "%Y/%m/%d %H:%M:%S"
-                )
+                self.end_date = datetime.strptime(time_formatter(end_date) + " 23:59:59", "%Y/%m/%d %H:%M:%S")
         else:
             None
 
-        if range not in ["1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"]:
-            if range == ("max" | "ytd"):
+        if range:
+            if range not in [
+                "1d",
+                "5d",
+                "1mo",
+                "3mo",
+                "6mo",
+                "1y",
+                "2y",
+                "5y",
+                "10y",
+                "ytd",
+                "max",
+            ]:
+                raise ValueError
+            elif range == "max" or range == "ytd":
                 raise ValueError("Sorry, the logic for 'max' range is not implemented yet")
-            raise ValueError
-        else:
-            self.end_date = datetime.now()
-            if "d" in range:
-                value = int(range.split("d")[0])
-                self.start_date = self.end_date - relativedelta(days=value)
-            elif "mo" in range:
-                value = int(range.split("mo")[0])
-                self.start_date = self.end_date - relativedelta(months=value)
             else:
-                value = int(range.split("y")[0])
-                self.start_date = self.end_date - relativedelta(years=value)
+                self.end_date = datetime.now()
+                if "d" in range:
+                    value = int(range.split("d")[0])
+                    self.start_date = self.end_date - relativedelta(days=value)
+                elif "mo" in range:
+                    value = int(range.split("mo")[0])
+                    self.start_date = self.end_date - relativedelta(months=value)
+                else:
+                    value = int(range.split("y")[0])
+                    self.start_date = self.end_date - relativedelta(years=value)
+        else:
+            return None
 
         self.events = _events
 
     def _get_params(self) -> Dict:
-        params = {"events": self.events, "interval": self.interval}
-        if self.interval != None:
-            params["interval"] = self.interval
-        else:
-            params["period1"] = self.start_date.timestamp()
-            params["period2"] = self.end_date.timestamp()
-
+        params = {
+            "events": self.events,
+            "interval": self.interval,
+            "period1": self.start_date.timestamp(),
+            "period1": self.end_date.timestamp(),
+        }
         return params
 
-    def _conn_api(self, conn_ticker: Text) -> pd.DataFrame:
+    def _conn_api(self, conn_ticker: Text) -> Union[requests.Response, pd.DataFrame]:
         _HEADERS = [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
@@ -129,9 +139,7 @@ class YStock:
         try:
             header = {"User-Agent": "{}".format(random.choice(_HEADERS))}
             logger.debug("Selected header -> {}".format(header))
-            with requests.get(
-                _stock_url.format(conn_ticker), params=self._get_params(), headers=header
-            ) as response:
+            with requests.get(_stock_url.format(conn_ticker), params=self._get_params(), headers=header) as response:
                 # ipdb.set_trace()
                 response.raise_for_status()
                 if response.status_code == 200:
@@ -145,12 +153,12 @@ class YStock:
         except Exception as e:
             print(f"There was an issue while retrieving data -> {e}")
 
-        return pd.DataFrame
+        return pd.DataFrame()
 
-    def data_loader(self, response: requests.Response | pd.DataFrame) -> pd.DataFrame:
+    def data_loader(self) -> pd.DataFrame:
         conn_response = self._conn_api(self.ticker)
         logger.info("Connection to the API has been succesfully established")
-        file = StringIO(conn_response.text)
+        file = StringIO(str(conn_response.text))
         reader = csv.reader(file)
         data = list(reader)
         data_df = pd.DataFrame(pd.DataFrame(data[1:], columns=data[0]))
