@@ -1,13 +1,35 @@
 import json
 import unittest
 from datetime import datetime
-from dateutil.relativedelta import relativedelta
 
 import pytest
+from dateutil.relativedelta import relativedelta
 
-from backend.api.yahoo_finance import YStock
+from backend.api.yahoo_finance import YStock, time_formatter
 
-# YStock class parametric to test for __init__ 
+
+#### time_formatter ####
+@pytest.mark.parametrize(
+    "input_date, expected_result",
+    [
+        ("2023/12/03", "2023/12/03"),
+        ("2023-12-03", "2023/12/03"),
+        ("2023.12.03", ValueError),
+    ],
+)
+def test_time_formatter(input_date, expected_result):
+    if "/" in input_date or "-" in input_date:
+        result = time_formatter(input_date)
+        assert result == expected_result
+    else:
+        with pytest.raises(ValueError, match="Please use either '-' or '/' when inserting a date"):
+            time_formatter(input_date)
+
+
+#### YStock ####
+
+
+# YStock class parametric to test for __init__
 @pytest.mark.parametrize(
     "parameters",
     [
@@ -46,6 +68,6 @@ def test_init(parameters):
 
 class TestYStock(unittest.TestCase):
     def test_init_range(self):
-        instance = YStock(ticker="AAPL", interval="1m", range= "5d")
-        self.assertEqual(instance.start_date, datetime.now() - relativedelta(days = 5))
+        instance = YStock(ticker="AAPL", interval="1m", range="5d")
+        self.assertEqual(instance.start_date, datetime.now() - relativedelta(days=5))
         self.assertEqual(instance.end_date, datetime.now())
