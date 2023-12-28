@@ -20,6 +20,22 @@ from backend.api.yahoo_finance import YStock, time_formatter
     ],
 )
 def test_time_formatter(input_date, expected_result):
+    """
+    Test the time_formatter function with different input formats.
+
+    Args:
+        input_date (_type_): The input date string to be formatted.
+        expected_result (_type_): The expected result after formatting.
+
+    Raises:
+        ValueError: If the input date has any other symbol that is not '/' or '-'
+
+    Test Cases:
+        - Test with date in 'YYYY/MM/DD' format.
+        - Test with date in 'YYYY-MM-DD' format.
+        - Test with an invalid date format, expecting a ValueError.
+    """
+
     if "/" in input_date or "-" in input_date:
         result = time_formatter(input_date)
         assert result == expected_result
@@ -58,6 +74,17 @@ def test_time_formatter(input_date, expected_result):
     ],
 )
 def test_init(parameters):
+    """
+    Test the __init__ magic method (constructor) of the YStock class with various parameters.
+
+    Args:
+        parameters (dict): A dictionary containing parameters for creating YStock instances.
+
+    Test Cases:
+        - Test start and end dates without times.
+        - Test start and end dates with times.
+    """
+
     instance = YStock(
         parameters["ticker"],
         parameters["interval"],
@@ -70,12 +97,25 @@ def test_init(parameters):
 
 class TestYStock(unittest.TestCase):
     def test_init_range(self):
+        """
+        Test the __init__ method of the YStock class when using range.
+        """
+
         instance = YStock(ticker="AAPL", interval="1m", range="5d")
-        self.assertEqual(instance.start_date, datetime.now() - relativedelta(days=5))
-        self.assertEqual(instance.end_date, datetime.now())
+        self.assertAlmostEqual(
+            instance.start_date,
+            datetime.now() - relativedelta(days=5),
+            delta=2,
+            msg="Time difference went over the delta",
+        )
+        self.assertAlmostEqual(instance.end_date, datetime.now(), delta=2, msg="Time difference went over the delta")
 
     @patch("backend.api.yahoo_finance.YStock", autospec=True)
     def test_get_params(self, mock_ystock):
+        """
+        Test the get_params method of the YStock class using a mocked instance and real instance. Comparing them afterwards
+        """
+
         mock_instance = mock_ystock.return_value
         mock_instance.get_params.return_value = {
             "ticker": "AAPL",
@@ -100,12 +140,20 @@ class TestYStock(unittest.TestCase):
         self.assertEqual(result["events"], expected["events"])
 
     def test_conn_api(self):
+        """
+        Test the conn_api method of the YStock class.
+        Depending on the selected dates, the interval may fail (this is a natural behaviour from Yahoo Finance)
+        """
+
         instance = YStock(
             ticker="AAPL", interval="1d", start_date="2023/10/03 13:34:16", end_date="2023/10/06 13:34:16"
         )
         self.assertEqual(instance.get_response, 200)
 
     def test_data_loader(self):
+        """
+        Test the data_loader method of the YStock class by means of checking the return output.
+        """
         instance = YStock(
             ticker="AAPL", interval="1d", start_date="2023/10/03 13:34:16", end_date="2023/10/06 13:34:16"
         )
