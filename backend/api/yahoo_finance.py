@@ -3,7 +3,7 @@ import logging
 import random
 from datetime import datetime
 from io import StringIO
-from typing import Dict, Optional, Text, Union
+from typing import Any, Callable, Dict, Optional, Text
 
 import ipdb
 import pandas as pd
@@ -18,9 +18,6 @@ logger.setLevel(logging.INFO)  # NOTSET=0 < DEBUG=10 < INFO=20 < WARN=30 < ERROR
 
 
 def time_formatter(input_date: Text) -> Text:
-    date_and_time = "%Y/%m/%d %H:%M:%S"
-    date_only = "%Y/%m/%d"
-
     if "-" in input_date:
         return input_date.replace("-", "/")
         logger.info("Date formar modified so that it uses YYYY/MM/DD")
@@ -42,21 +39,9 @@ class YStock:
     ):
         self.ticker = ticker
 
-        if interval not in [
-            "1m",
-            "2m",
-            "5m",
-            "15m",
-            "30m",
-            "60m",
-            "90m",
-            "1h",
-            "1d",
-            "5d",
-            "1wk",
-            "1mo",
-            "3mo",
-        ]:
+        self.events = _events
+
+        if interval not in ["1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h", "1d", "5d", "1wk", "1mo", "3mo"]:
             raise ValueError
         else:
             self.interval = interval
@@ -78,19 +63,7 @@ class YStock:
             None
 
         if range:
-            if range not in [
-                "1d",
-                "5d",
-                "1mo",
-                "3mo",
-                "6mo",
-                "1y",
-                "2y",
-                "5y",
-                "10y",
-                "ytd",
-                "max",
-            ]:
+            if range not in ["1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"]:
                 raise ValueError
             elif range == "max" or range == "ytd":
                 raise ValueError("Sorry, the logic for 'max' range is not implemented yet")
@@ -108,18 +81,21 @@ class YStock:
         else:
             return None
 
-        self.events = _events
-
     def _get_params(self) -> Dict:
         params = {
-            "events": self.events,
+            "ticker": self.ticker,
             "interval": self.interval,
-            "period1": self.start_date.timestamp(),
-            "period1": self.end_date.timestamp(),
+            "period1": int(self.start_date.timestamp()),
+            "period2": int(self.end_date.timestamp()),
+            "events": self.events,
         }
         return params
 
-    def _conn_api(self, conn_ticker: Text) -> Union[requests.Response, pd.DataFrame]:
+    @property
+    def get_params(self) -> Callable[[], dict[Any, Any]]:
+        return self._get_params
+
+    def _conn_api(self) -> requests.Response:
         _HEADERS = [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
@@ -139,24 +115,31 @@ class YStock:
         try:
             header = {"User-Agent": "{}".format(random.choice(_HEADERS))}
             logger.debug("Selected header -> {}".format(header))
-            with requests.get(_stock_url.format(conn_ticker), params=self._get_params(), headers=header) as response:
+            with requests.get(_stock_url.format(self.ticker), params=self._get_params(), headers=header) as response:
                 # ipdb.set_trace()
                 response.raise_for_status()
                 if response.status_code == 200:
                     return response
         except requests.exceptions.HTTPError as e:
-            print(f"HTTP error while retrieving data -> {e}")
+            print(f"**** HTTP error while retrieving data ****  \n---> {e} \n---> {response.text}")
             if response.status_code == 403:
-                print(f"403 - Forbidden access. User Agent was: \n{header}")
+                print(f"**** 403 - Forbidden access **** \n---> User Agent was: \n---> {header}")
+            raise e
         except requests.exceptions.RequestException as e:
-            print(f"Error with requests while retrievent data -> {e}")
+            print(f"**** Error with requests while retrievent data **** \n ---> {e} \n---> {response.text}")
+            raise e
         except Exception as e:
-            print(f"There was an issue while retrieving data -> {e}")
+            print(f"**** There was an issue while retrieving data **** \n ---> {e} \n---> {response.text}")
+            raise e
 
-        return pd.DataFrame()
+        raise RuntimeError("Unexpected flow reached in _conn_api")
+
+    @property
+    def get_response(self):
+        return self._conn_api().status_code
 
     def data_loader(self) -> pd.DataFrame:
-        conn_response = self._conn_api(self.ticker)
+        conn_response = self._conn_api()
         logger.info("Connection to the API has been succesfully established")
         file = StringIO(str(conn_response.text))
         reader = csv.reader(file)

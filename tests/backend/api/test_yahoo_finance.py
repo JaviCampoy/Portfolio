@@ -1,7 +1,9 @@
 import json
 import unittest
 from datetime import datetime
+from unittest.mock import patch
 
+import pandas as pd
 import pytest
 from dateutil.relativedelta import relativedelta
 
@@ -26,7 +28,7 @@ def test_time_formatter(input_date, expected_result):
             time_formatter(input_date)
 
 
-#### YStock ####
+#### YStock class ####
 
 
 # YStock class parametric to test for __init__
@@ -71,3 +73,41 @@ class TestYStock(unittest.TestCase):
         instance = YStock(ticker="AAPL", interval="1m", range="5d")
         self.assertEqual(instance.start_date, datetime.now() - relativedelta(days=5))
         self.assertEqual(instance.end_date, datetime.now())
+
+    @patch("backend.api.yahoo_finance.YStock", autospec=True)
+    def test_get_params(self, mock_ystock):
+        mock_instance = mock_ystock.return_value
+        mock_instance.get_params.return_value = {
+            "ticker": "AAPL",
+            "interval": "1m",
+            "period1": 1696332856,
+            "period2": 1701606856,
+            "events": "history",
+        }
+
+        expected = mock_instance.get_params.return_value
+
+        real_instance = YStock(
+            ticker="AAPL", interval="1m", start_date="2023/10/03 13:34:16", end_date="2023/12/03 13:34:16"
+        )
+
+        result = real_instance.get_params()
+
+        self.assertEqual(result["ticker"], expected["ticker"])
+        self.assertEqual(result["interval"], expected["interval"])
+        self.assertEqual(result["period1"], expected["period1"])
+        self.assertEqual(result["period2"], expected["period2"])
+        self.assertEqual(result["events"], expected["events"])
+
+    def test_conn_api(self):
+        instance = YStock(
+            ticker="AAPL", interval="1d", start_date="2023/10/03 13:34:16", end_date="2023/10/06 13:34:16"
+        )
+        self.assertEqual(instance.get_response, 200)
+
+    def test_data_loader(self):
+        instance = YStock(
+            ticker="AAPL", interval="1d", start_date="2023/10/03 13:34:16", end_date="2023/10/06 13:34:16"
+        )
+        result = instance.data_loader()
+        self.assertEqual(type(result), pd.DataFrame)
