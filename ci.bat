@@ -10,6 +10,7 @@ echo ******   EXECUTING PYLINT   ******
 pylint backend --ignore=virtual_environment
 pylint tests --ignore=virtual_environment  
 pylint main.py --ignore=virtual_environment
+pylint common --ignore=virtual_environment
 echo ******   EXECUTING MYPY   ******
 mypy . --exclude virtual_environment
 echo ******   EXECUTING PYTEST   ******
