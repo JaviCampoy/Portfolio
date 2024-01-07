@@ -11,7 +11,7 @@ import requests
 from dateutil.relativedelta import relativedelta
 
 logging.basicConfig()
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)  # NOTSET=0 < DEBUG=10 < INFO=20 < WARN=30 < ERROR=40 < CRITICAL=50
 
 # Used for dual client <-> server communication/authentication. Avoids a "forbidden" response.

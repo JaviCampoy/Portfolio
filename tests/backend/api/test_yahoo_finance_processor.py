@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from backend.api.yahoo_finance_processor import YStockProcessor
+from src.backend.api.yahoo_finance_processor import YStockProcessor
 
 # This is some kind of mock dataframe similar to what we obtain from yahoo finance when using the 'yahoo_finance.py'
 dummy_data = {

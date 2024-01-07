@@ -1,4 +1,3 @@
-import json
 import unittest
 from datetime import datetime
 from unittest.mock import patch
@@ -7,7 +6,7 @@ import pandas as pd
 import pytest
 from dateutil.relativedelta import relativedelta
 
-from backend.api.yahoo_finance import YStock, time_formatter
+from src.backend.api.yahoo_finance import YStock, time_formatter
 
 
 #### time_formatter ####
@@ -110,7 +109,7 @@ class TestYStock(unittest.TestCase):
         )
         self.assertAlmostEqual(instance.end_date, datetime.now(), delta=2, msg="Time difference went over the delta")
 
-    @patch("backend.api.yahoo_finance.YStock", autospec=True)
+    @patch("src.backend.api.yahoo_finance.YStock", autospec=True)
     def test_get_params(self, mock_ystock):
         """
         Test the get_params method of the YStock class using a mocked instance and real instance. Comparing them afterwards

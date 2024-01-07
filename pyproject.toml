@@ -11,6 +11,7 @@ pandas = "^2.1.4"
 fastapi = {extras = ["all"], version = "^0.108.0"}
 sqlalchemy = "^2.0.24"
 numpy = "^1.26.3"
+mysql-connector-python = "^8.2.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"

@@ -1,6 +1,6 @@
 import pandas as pd
 
-from common.api_dataframe_processor import ApiDataProcessor
+from src.utilities.api_dataframe_processor_framework import ApiDataProcessor
 
 
 class YStockProcessor(ApiDataProcessor):
@@ -8,7 +8,7 @@ class YStockProcessor(ApiDataProcessor):
     This class is based on the api_dataframe_processor framework
 
     Args:
-        api_dataframe_processor (_type_): _description_
+        api_dataframe_processor: Framework from which inheritance happens
     """
 
     def __init__(self):

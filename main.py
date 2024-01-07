@@ -1,5 +1,5 @@
-from backend.api.yahoo_finance import YStock
-from backend.api.yahoo_finance_processor import YStockProcessor
+from src.backend.api.yahoo_finance import YStock
+from src.backend.api.yahoo_finance_processor import YStockProcessor
 
 if __name__ == "__main__":
     df = YStock(
