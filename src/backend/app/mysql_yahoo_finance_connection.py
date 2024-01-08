@@ -1,5 +1,5 @@
 from src.utilities.custom_decorators import override_params
-from src.utilities.mysql_connection_framework import DbConn
+from src.utilities.db_connection_framework import DbConn
 from mysql.connector import connect, Error, MySQLConnection, errorcode
 import logging
 import time
@@ -27,10 +27,8 @@ class YStockMySQL(DbConn):
         else:
             super().__init__(user, password, host)
 
-        self.connect()
-
     #TODO Consider using the built-in library getpass (e.g. "getpass('Enter Password: ')") so that credentials are not hard-coded
-    def connect(self, attempts:int=3, delay:int=2)-> Optional[MySQLConnection]:
+    def server_connect(self, attempts:int=3, delay:int=2)-> Optional[MySQLConnection]:
         """
         This class method will be executed directly once YStockMySQL gets instantiated.
         Based on the parameters from the init constructor, a connect attempt will be carried out
@@ -45,8 +43,15 @@ class YStockMySQL(DbConn):
         attempt = 1
         while attempt <= attempts + 1:
             try:
-                with connect(host= self.host, user=self.user, password=self.password) as conn:
-                    logger.info(f"Connection to MySQL succesfully established: \n--->{conn}")
+                # with connect(host= self.host, user=self.user, password=self.password) as conn: -----> To be used in case we want to close the connection immediately afterwards
+                config = {
+                    "host": self.host, 
+                    "user": self.user, 
+                    "password": self.password
+                    }
+                conn = connect(**config)
+                logger.info(f"Connection to MySQL succesfully established: \n--->{conn}")
+                return conn
             except Error as err:
                 if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
                     logger.info(f"Something is wrong with your user name or password: \n--->{err}")

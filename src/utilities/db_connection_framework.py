@@ -11,10 +11,10 @@ class DbConn(ABC):
         self.password = password
         self.host = host
 
-        self.connect()
+        self.server_connect()
 
     @abstractmethod
-    def connect(self):
+    def server_connect(self):
         """
         This method should be called directly once the class is instantiated.
         This creates the connection to the seleted database manager
